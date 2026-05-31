@@ -12,7 +12,7 @@ data class Categoria(
     val idCategoria: Int = 0,
 
     @Column(name = "nombre_categoria", length = 50, nullable = false)
-    val nombreCategoria: String
+    val nombreCategoria: String,
 
 
     @ManyToMany(mappedBy = "categorias", fetch = FetchType.LAZY)

@@ -36,7 +36,7 @@ data class Videojuego(
     val fechaLanzamiento: LocalDate? = null,
 
     @Column(name = "activo", nullable = false)
-    val activo: Boolean = true
+    val activo: Boolean = true,
 
 
     @ManyToMany(fetch = FetchType.LAZY)

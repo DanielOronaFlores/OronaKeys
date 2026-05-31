@@ -10,6 +10,6 @@ data class Rol(
     @Column(name = "id_rol")
     val idRol: Int = 0,
 
-    @Column(name = "nombre", length = 50, nullable = false, unique = true)
+    @Column(name = "nombre_rol", length = 50, nullable = false, unique = true)
     val nombre: String
 )
