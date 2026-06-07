@@ -25,5 +25,5 @@ data class Usuario(
     val rol: Rol,
 
     @Column(name = "fecha_registro", nullable = true)
-    val fechaRegistro: LocalDateTime
+    val fechaRegistro: LocalDateTime 
 )

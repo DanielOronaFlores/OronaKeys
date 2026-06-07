@@ -21,7 +21,7 @@ data class ClaveDigital(
 
     @Enumerated(EnumType.STRING)
     @Column(name = "estado", nullable = false)
-    val estado: EstadoClave = EstadoClave.disponible,
+    var estado: EstadoClave = EstadoClave.disponible,
 
     @CreationTimestamp
     @Column(name = "fecha_ingreso", updatable = false)

@@ -11,10 +11,10 @@ data class Cupon(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_cupon")
-    val id_cupon: Int = 0,
+    val idCupon: Int = 0,
 
     @Column(name = "codigo_cupon", length = 20, nullable = false,  unique = true)
-    val codigo_cupon: String,
+    val codigoCupon: String,
 
     @Column(name = "porcentaje_descuento", precision = 5, scale = 2, nullable = false)
     val porcentajeDescuento: BigDecimal = BigDecimal.ZERO,

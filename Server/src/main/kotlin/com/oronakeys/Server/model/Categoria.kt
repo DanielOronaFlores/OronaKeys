@@ -1,6 +1,7 @@
 package com.oronakeys.Server.model
 
 import jakarta.persistence.*
+import com.fasterxml.jackson.annotation.JsonIgnore
 
 @Entity
 @Table(name = "categorias")
@@ -14,7 +15,7 @@ data class Categoria(
     @Column(name = "nombre_categoria", length = 50, nullable = false)
     val nombreCategoria: String,
 
-
+    @JsonIgnore 
     @ManyToMany(mappedBy = "categorias", fetch = FetchType.LAZY)
     val videojuegos: Set<Videojuego> = emptySet()
 )

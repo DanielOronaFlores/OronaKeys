@@ -3,6 +3,7 @@ package com.oronakeys.Server.model
 import jakarta.persistence.*
 import java.math.BigDecimal
 import java.time.LocalDate
+import com.fasterxml.jackson.annotation.JsonIgnore
 
 @Entity
 @Table(name = "videojuegos")
@@ -38,7 +39,7 @@ data class Videojuego(
     @Column(name = "activo", nullable = false)
     val activo: Boolean = true,
 
-
+    @JsonIgnore
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
         name = "videojuegos_categorias",

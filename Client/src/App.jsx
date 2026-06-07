@@ -1,42 +1,36 @@
-import { useEffect, useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+
+import Inicio from './pages/inicio';
+import Navbar from './components/navbar';
+import Login from './pages/login';
+import Signup from  './pages/signup';
+import Catalogo from './pages/catalogo';
+import Juego from './pages/juego';
+import Carrito from './pages/carrito';
+import Checkout from './pages/checkout';
+import Perfil from './pages/perfil';
 
 function App() {
-  const [desarrolladores, setDesarrolladores] = useState([]);
-
-  useEffect(() => {
-    fetch('http://localhost:8080/api/desarrolladores')
-      .then((respuesta) => respuesta.json())
-      .then((datos) => setDesarrolladores(datos))
-      .catch((error) => console.error("Error conectando al servidor:", error));
-  }, []);
-
   return (
-    <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
-      <h1>Panel Admin - Desarrolladores</h1>
+    <BrowserRouter>
+      <Navbar />
+      <Routes>
+        <Route path="/" element={<Navigate to="/inicio" replace />} />
+        
+        <Route path="/inicio" element={<Inicio />} />
+        
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+
+        <Route path="/catalogo" element={<Catalogo />} />
+        <Route path="/juego/:id" element={<Juego />} />
       
-      {desarrolladores.length === 0 ? (
-        <p>Cargando datos o no hay desarrolladores registrados...</p>
-      ) : (
-        <table border="1" cellPadding="10" style={{ borderCollapse: 'collapse' }}>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Nombre</th>
-              <th>Sitio Web</th>
-            </tr>
-          </thead>
-          <tbody>
-            {desarrolladores.map((dev) => (
-              <tr key={dev.idDesarrollador}>
-                <td>{dev.idDesarrollador}</td>
-                <td>{dev.nombreDesarrollador}</td>
-                <td>{dev.sitioWeb || 'Sin sitio web'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </div>
+        <Route path="/carrito" element={<Carrito />} />
+        <Route path="/checkout" element={<Checkout />} />
+
+        <Route path="/perfil" element={<Perfil />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
