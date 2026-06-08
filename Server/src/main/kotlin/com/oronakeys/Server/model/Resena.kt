@@ -2,10 +2,6 @@ package com.oronakeys.Server.model
 
 import jakarta.persistence.*
 import java.time.LocalDateTime
-import org.hibernate.annotations.OnDelete
-import org.hibernate.annotations.OnDeleteAction
-import jakarta.validation.constraints.Max
-import jakarta.validation.constraints.Min
 
 @Entity
 @Table(name = "resenas")
@@ -15,23 +11,19 @@ data class Resena(
     @Column(name = "id_resena")
     val idResena: Int = 0,
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_videojuego", nullable = false)
-    @OnDelete(action = OnDeleteAction.CASCADE)
-    val videojuego: Videojuego,
+    @Column(name = "id_videojuego", nullable = false)
+    val idVideojuego: Int,
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_usuario", nullable = false)
-    val usuario: Usuario,
+    @Column(name = "id_usuario", nullable = false)
+    val idUsuario: Int,
 
-    @Column(name = "calificacion", nullable = false)
-    @Min(value = 1, message = "La calificación mínima es 1") // <-- Validación
-    @Max(value = 5, message = "La calificación máxima es 5")
-    val calificacion: Int = 0,
+    @Column(name = "calificacion")
+    val calificacion: Int? = null,
 
-    @Column(name = "comentario", length = 1000, nullable = true)
+    @Column(name = "comentario", columnDefinition = "TEXT")
     val comentario: String? = null,
 
-    @Column(name = "fecha_resena", nullable = true)
-    val fechaResena: LocalDateTime
+    // insertable y updatable en false para que MySQL maneje el CURRENT_TIMESTAMP
+    @Column(name = "fecha_resena", insertable = false, updatable = false)
+    val fechaResena: LocalDateTime? = null
 )

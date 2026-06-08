@@ -12,52 +12,60 @@ function DetalleJuego() {
   
   const [hayLlavesDisponibles, setHayLlavesDisponibles] = useState(false);
 
-    useEffect(() => {
+  const [resenas, setResenas] = useState([]);
+  const [textoResena, setTextoResena] = useState('');
+  const [calificacion, setCalificacion] = useState(5);
+  const [resenaEditando, setResenaEditando] = useState(null); // Guarda el ID de la reseña si estamos editando
+  
+
+// 1. Limpieza estricta de la sesión (evita que el texto "null" rompa la lógica)
+  const idActivoRaw = localStorage.getItem('idUsuarioActivo');
+  const idUsuarioActivo = (idActivoRaw && idActivoRaw !== 'null' && idActivoRaw !== 'undefined') ? idActivoRaw : null;
+
+  useEffect(() => {
     async function cargarDatos() {
       try {
-        // 1. Pedimos todo al mismo tiempo
-        const [juegoRes, stockRes, catRes] = await Promise.all([
+        // Blindamos los fetch con .catch() para que un error en reseñas/stock no tumbe toda la página
+        const [juegoRes, stockRes, catRes, resenasRes] = await Promise.all([
           fetch(`http://localhost:8080/api/juego/${id}`),
-          fetch(`http://localhost:8080/api/juego/${id}/stock`),
-          fetch(`http://localhost:8080/api/categorias/por-juego/${id}`)
+          fetch(`http://localhost:8080/api/juego/${id}/stock`).catch(() => ({ ok: false })),
+          fetch(`http://localhost:8080/api/categorias/por-juego/${id}`).catch(() => ({ ok: false })),
+          fetch(`http://localhost:8080/api/resenas/juego/${id}`).catch(() => ({ ok: false }))
         ]);
 
-        // Si el juego no existe, abortamos
-        if (!juegoRes.ok) throw new Error("Juego no encontrado en la base de datos");
+        if (!juegoRes || !juegoRes.ok) throw new Error("Juego no encontrado");
 
-        // 2. Convertimos las respuestas a JSON
         const juegoData = await juegoRes.json();
-        const stockData = await stockRes.json();
-        const catData = await catRes.json();
+        const stockData = stockRes.ok ? await stockRes.json() : { hayStock: false };
+        const catData = catRes.ok ? await catRes.json() : [];
+        const resenasData = resenasRes.ok ? await resenasRes.json() : []; // Si no hay reseñas, arreglo vacío seguro
 
-        // 3. Unimos el juego limpio con las categorías que trajimos por separado
         setJuego({
           ...juegoData,
-          categorias: catData // Aquí inyectamos ["RPG", "Aventura"]
+          categorias: catData 
         });
         
         setHayLlavesDisponibles(stockData.hayStock);
+        setResenas(resenasData);
         setCargando(false);
 
       } catch (error) {
-        console.error("Error al cargar los datos:", error);
-        setJuego(null); // Esto forzará la pantalla de "Juego no encontrado" en lugar de $NaN
+        console.error("Error crítico al cargar:", error);
+        setJuego(null);
         setCargando(false);
       }
     }
 
     cargarDatos();
 
-    // 4. Wishlist (independiente)
-    const idUsuario = localStorage.getItem('idUsuarioActivo');
-    if (idUsuario) {
-      fetch(`http://localhost:8080/api/deseos/verificar?idUsuario=${idUsuario}&idVideojuego=${id}`)
+    // Solo buscamos wishlist si realmente hay un usuario activo
+    if (idUsuarioActivo) {
+      fetch(`http://localhost:8080/api/deseos/verificar?idUsuario=${idUsuarioActivo}&idVideojuego=${id}`)
         .then(res => res.json())
         .then(data => setEnListaDeseos(data.enLista))
         .catch(err => console.error("Error wishlist:", err));
     }
-  }, [id]);
-  
+  }, [id, idUsuarioActivo]);  
 
   const agregarAlCarrito = () => {
     const haySesion = localStorage.getItem('token'); 
@@ -122,6 +130,78 @@ function DetalleJuego() {
 
   // Variable para saber si el botón debe estar habilitado (El juego está activo en tienda Y hay llaves)
   const sePuedeComprar = juego.activo && hayLlavesDisponibles;
+
+  // --- FUNCIONES DE RESEÑAS ---
+  const manejarSubmitResena = (e) => {
+    e.preventDefault();
+    if (!idUsuarioActivo) {
+      alert("¡Debes iniciar sesión para dejar una reseña!");
+      return navigate('/login');
+    }
+
+    const payload = {
+      idVideojuego: Number(id),
+      idUsuario: Number(idUsuarioActivo),
+      calificacion: Number(calificacion),
+      comentario: textoResena
+    };
+
+    const url = resenaEditando 
+      ? `http://localhost:8080/api/resenas/${resenaEditando}`
+      : `http://localhost:8080/api/resenas`;
+      
+    const metodo = resenaEditando ? 'PUT' : 'POST';
+
+    fetch(url, {
+      method: metodo,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(resenaGuardada => {
+      if (resenaEditando) {
+        // Actualizamos la lista local conservando el nombre de usuario
+        setResenas(resenas.map(r => {
+          if (r.idResena === resenaEditando) {
+            return {
+              ...resenaGuardada,
+              nombreUsuario: r.nombreUsuario // ¡Mantenemos el nombre a salvo!
+            };
+          }
+          return r;
+        }));
+      } else {
+        // Al crear una nueva, como la API devuelve la pura Resena, le ponemos "Tú" temporalmente
+        // hasta que el usuario recargue la página.
+        setResenas([...resenas, { ...resenaGuardada, nombreUsuario: "Tú" }]);
+      }
+      
+      // Limpiamos el formulario
+      setTextoResena('');
+      setCalificacion(5);
+      setResenaEditando(null);
+    })
+    .catch(err => console.error("Error al guardar reseña:", err));
+  };
+
+  const prepararEdicion = (resena) => {
+    setTextoResena(resena.comentario);
+    setCalificacion(resena.calificacion);
+    setResenaEditando(resena.idResena);
+    // Hacer scroll hacia el formulario sería un buen toque visual aquí
+  };
+
+  const eliminarResena = (idResena) => {
+    if(!window.confirm("¿Seguro que quieres borrar esta reseña?")) return;
+
+    fetch(`http://localhost:8080/api/resenas/${idResena}`, { method: 'DELETE' })
+      .then(() => {
+        setResenas(resenas.filter(r => r.idResena !== idResena));
+      })
+      .catch(err => console.error("Error al eliminar:", err));
+  };
+
+
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#0a0a0a', color: '#fff', fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif", padding: '40px 20px' }}>
@@ -232,9 +312,75 @@ function DetalleJuego() {
               {sePuedeComprar ? 'Añadir al Carrito' : 'Temporalmente sin llaves'}
             </button>
           </div>
-          
         </div>
       </div>
+        {/* SECCIÓN DE RESEÑAS */}
+        <div style={{ maxWidth: '1200px', margin: '60px auto 0', borderTop: '1px solid #333', paddingTop: '40px' }}>
+          <h2 style={{ color: '#00BFFF', fontSize: '2rem', marginBottom: '20px' }}>Reseñas de la Comunidad</h2>
+
+          {/* Formulario para agregar/editar reseña */}
+          {idUsuarioActivo && (
+            <form onSubmit={manejarSubmitResena} style={{ backgroundColor: '#111', padding: '20px', borderRadius: '8px', marginBottom: '30px', border: '1px solid #222' }}>
+              <h3 style={{ margin: '0 0 15px 0' }}>{resenaEditando ? 'Editar tu reseña' : 'Escribe una reseña'}</h3>
+              
+              <div style={{ display: 'flex', gap: '15px', marginBottom: '15px' }}>
+                <label>Calificación (1-5):</label>
+                <select value={calificacion} onChange={e => setCalificacion(e.target.value)} style={{ padding: '5px', borderRadius: '4px', backgroundColor: '#222', color: '#fff', border: '1px solid #444' }}>
+                  {[1, 2, 3, 4, 5].map(num => (
+                    <option key={num} value={num}>{num} Estrellas</option>
+                  ))}
+                </select>
+              </div>
+
+              <textarea 
+                value={textoResena} 
+                onChange={e => setTextoResena(e.target.value)} 
+                placeholder="¿Qué te pareció el juego?"
+                required
+                rows="4"
+                style={{ width: '100%', padding: '10px', borderRadius: '4px', backgroundColor: '#222', color: '#fff', border: '1px solid #444', marginBottom: '15px', resize: 'vertical' }}
+              />
+              
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button type="submit" style={{ padding: '10px 20px', backgroundColor: '#00FF88', color: '#000', fontWeight: 'bold', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+                  {resenaEditando ? 'Guardar Cambios' : 'Publicar Reseña'}
+                </button>
+                {resenaEditando && (
+                  <button type="button" onClick={() => { setResenaEditando(null); setTextoResena(''); setCalificacion(5); }} style={{ padding: '10px 20px', backgroundColor: '#444', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+                    Cancelar
+                  </button>
+                )}
+              </div>
+            </form>
+          )}
+
+          {/* Lista de Reseñas */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            {resenas.length === 0 ? (
+              <p style={{ color: '#888' }}>Aún no hay reseñas para este juego. ¡Sé el primero!</p>
+            ) : (
+              resenas.map(resena => (
+                <div key={resena.idResena} style={{ backgroundColor: '#1a1a1a', padding: '20px', borderRadius: '8px', borderLeft: '4px solid #00BFFF' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                    <div>
+                      <span style={{ fontWeight: 'bold', color: '#FFD700', marginRight: '10px' }}>{resena.calificacion} ⭐</span>
+                      <span style={{ color: '#888', fontSize: '0.9rem' }}>{resena.nombreUsuario}</span>
+                    </div>
+                    
+                    {/* Controles de Edición: Solo visibles si la reseña es del usuario actual */}
+                    {String(resena.idResena) === idUsuarioActivo && (
+                      <div style={{ display: 'flex', gap: '10px' }}>
+                        <button onClick={() => prepararEdicion(resena)} style={{ background: 'none', border: 'none', color: '#00BFFF', cursor: 'pointer', fontSize: '0.9rem' }}>Editar</button>
+                        <button onClick={() => eliminarResena(resena.idResena)} style={{ background: 'none', border: 'none', color: '#ff3333', cursor: 'pointer', fontSize: '0.9rem' }}>Eliminar</button>
+                      </div>
+                    )}
+                  </div>
+                  <p style={{ margin: 0, lineHeight: '1.5' }}>{resena.comentario}</p>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
     </div>
   );
 }
