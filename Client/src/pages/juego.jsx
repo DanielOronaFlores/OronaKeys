@@ -12,43 +12,51 @@ function DetalleJuego() {
   
   const [hayLlavesDisponibles, setHayLlavesDisponibles] = useState(false);
 
-  useEffect(() => {
-    // 1. Cargar detalles del juego
-    fetch(`http://localhost:8080/api/juego/${id}`)
-      .then(respuesta => {
-        if (!respuesta.ok) throw new Error("Juego no encontrado");
-        return respuesta.json();
-      })
-      .then(datos => {
-        setJuego(datos);
+    useEffect(() => {
+    async function cargarDatos() {
+      try {
+        // 1. Pedimos todo al mismo tiempo
+        const [juegoRes, stockRes, catRes] = await Promise.all([
+          fetch(`http://localhost:8080/api/juego/${id}`),
+          fetch(`http://localhost:8080/api/juego/${id}/stock`),
+          fetch(`http://localhost:8080/api/categorias/por-juego/${id}`)
+        ]);
+
+        // Si el juego no existe, abortamos
+        if (!juegoRes.ok) throw new Error("Juego no encontrado en la base de datos");
+
+        // 2. Convertimos las respuestas a JSON
+        const juegoData = await juegoRes.json();
+        const stockData = await stockRes.json();
+        const catData = await catRes.json();
+
+        // 3. Unimos el juego limpio con las categorías que trajimos por separado
+        setJuego({
+          ...juegoData,
+          categorias: catData // Aquí inyectamos ["RPG", "Aventura"]
+        });
+        
+        setHayLlavesDisponibles(stockData.hayStock);
         setCargando(false);
-      })
-      .catch(error => {
-        console.error("Error al cargar detalles:", error);
+
+      } catch (error) {
+        console.error("Error al cargar los datos:", error);
+        setJuego(null); // Esto forzará la pantalla de "Juego no encontrado" en lugar de $NaN
         setCargando(false);
-      });
-      
-    // 2. Verificar wishlist
+      }
+    }
+
+    cargarDatos();
+
+    // 4. Wishlist (independiente)
     const idUsuario = localStorage.getItem('idUsuarioActivo');
     if (idUsuario) {
       fetch(`http://localhost:8080/api/deseos/verificar?idUsuario=${idUsuario}&idVideojuego=${id}`)
         .then(res => res.json())
-        .then(data => {
-          setEnListaDeseos(data.enLista); 
-        })
-        .catch(err => console.error("Error al verificar wishlist:", err));
+        .then(data => setEnListaDeseos(data.enLista))
+        .catch(err => console.error("Error wishlist:", err));
     }
-
-    // 3. NUEVO: Verificar stock real de llaves
-    fetch(`http://localhost:8080/api/juego/${id}/stock`)
-      .then(res => res.json())
-      .then(data => {
-        setHayLlavesDisponibles(data.hayStock);
-      })
-      .catch(err => console.error("Error al verificar stock:", err));
-
   }, [id]);
-
   
 
   const agregarAlCarrito = () => {
@@ -138,26 +146,46 @@ function DetalleJuego() {
             {juego.titulo}
           </h1>
 
-          <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-            {juego.plataforma && (juego.plataforma.nombrePlataforma || juego.plataforma.nombre) && (
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' }}>
+            
+            {/* Plataforma */}
+            {juego.plataforma && (
               <span style={{ backgroundColor: '#222', padding: '6px 12px', borderRadius: '4px', fontSize: '0.9rem', color: '#00BFFF' }}>
-                {juego.plataforma.nombrePlataforma || juego.plataforma.nombre}
+                {juego.plataforma}
               </span>
             )}
             
-            {juego.desarrollador && (juego.desarrollador.nombreDesarrollador || juego.desarrollador.nombre) && (
+            {/* Desarrollador */}
+            {juego.desarrollador && (
               <span style={{ backgroundColor: '#222', padding: '6px 12px', borderRadius: '4px', fontSize: '0.9rem', color: '#00FF88' }}>
-                {juego.desarrollador.nombreDesarrollador || juego.desarrollador.nombre}
+                {juego.desarrollador}
               </span>
             )}
-          
-          {/* Tag de estado visual actualizado */}
-          <span style={{ 
-               backgroundColor: sePuedeComprar ? 'rgba(0, 255, 136, 0.1)' : 'rgba(255, 51, 51, 0.1)', 
-               color: sePuedeComprar ? '#00FF88' : '#ff3333', 
-               padding: '6px 12px', borderRadius: '4px', fontSize: '0.9rem', fontWeight: 'bold' 
-             }}>
-              {sePuedeComprar ? 'En Stock' : 'Agotado'}
+
+            {/* NUEVO: Etiquetas de Categorías dinámicas */}
+            {juego.categorias && juego.categorias.map((nombre, index) => (
+              <span 
+                key={index} 
+                style={{ 
+                  backgroundColor: '#333', 
+                  padding: '6px 12px', 
+                  borderRadius: '4px', 
+                  fontSize: '0.9rem', 
+                  color: '#FFD700', 
+                  border: '1px solid #555' 
+                }}
+              >
+                {nombre}
+              </span>
+            ))}
+
+            {/* Stock */}
+            <span style={{ 
+                backgroundColor: sePuedeComprar ? 'rgba(0, 255, 136, 0.1)' : 'rgba(255, 51, 51, 0.1)', 
+                color: sePuedeComprar ? '#00FF88' : '#ff3333', 
+                padding: '6px 12px', borderRadius: '4px', fontSize: '0.9rem', fontWeight: 'bold' 
+              }}>
+                {sePuedeComprar ? 'En Stock' : 'Agotado'}
             </span>
           </div>
 

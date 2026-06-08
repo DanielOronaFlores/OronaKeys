@@ -36,13 +36,30 @@ class JuegoController(
     ){
 
     @GetMapping("/juego/{id}")
-    fun obtenerJuegoPorId(@PathVariable id: Int): ResponseEntity<Videojuego> {
-        val juego = videojuegoRepository.findById(id)
-        return if (juego.isPresent) {
-            ResponseEntity.ok(juego.get())
-        } else {
-            ResponseEntity.notFound().build()
+    fun obtenerJuegoPorId(@PathVariable id: Int): ResponseEntity<Any> { // Cambiamos a <Any> para enviar un mapa
+        val juegoOptional = videojuegoRepository.findById(id)
+        
+        if (juegoOptional.isEmpty) {
+            return ResponseEntity.notFound().build()
         }
+        
+        val juego = juegoOptional.get()
+        
+        // Creamos un mapa "limpio" con puros textos y números
+        val respuestaPlana = mapOf(
+            "idVideojuego" to juego.idVideojuego,
+            "titulo" to juego.titulo,
+            "descripcion" to juego.descripcion,
+            "precio" to juego.precio,
+            "imagenUrl" to juego.imagenUrl,
+            "activo" to juego.activo,
+            // Nos aseguramos de sacar el String y que no viaje el objeto entidad
+            "plataforma" to (juego.plataforma?.nombre ?: "N/A"),
+            "desarrollador" to (juego.desarrollador?.nombreDesarrollador ?: "N/A")
+            // Omitimos categorías aquí, ¡tu CategoriasController ya se encarga de eso!
+        )
+        
+        return ResponseEntity.ok(respuestaPlana)
     }
 
 
