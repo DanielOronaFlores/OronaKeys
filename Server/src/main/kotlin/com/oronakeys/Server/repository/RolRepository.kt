@@ -1,4 +1,4 @@
-package com.oronakeys.Server.model
+package com.oronakeys.Server.repository
 
 import com.oronakeys.Server.model.Rol
 import org.springframework.data.jpa.repository.JpaRepository

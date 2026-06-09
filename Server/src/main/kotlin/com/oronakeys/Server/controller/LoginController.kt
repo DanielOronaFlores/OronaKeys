@@ -26,7 +26,8 @@ class LoginController(private val usuarioRepository : UsuarioRepository) {
                 "exito" to true,
                 "mensaje" to "Bienvenido al Panel",
                 "usuario" to mapOf(
-                "idUsuario" to usuarioEncontrado.idUsuario, // Este es el dato de oro
+                "idUsuario" to usuarioEncontrado.idUsuario,
+                "idRol" to usuarioEncontrado.rol,
                 "nombre" to usuarioEncontrado.nombre,
                 "correo" to usuarioEncontrado.email)
                 ))

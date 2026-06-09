@@ -26,12 +26,28 @@ function Login() {
     
     .then((datos) => {
         if (datos.exito === true) {
+            const rolId = Number(datos.usuario.idRol.idRol);
+            
             localStorage.setItem('token', 'sesion-activa');
             localStorage.setItem('idUsuario', datos.usuario.idUsuario)
+            localStorage.setItem('idRol', rolId);
+
+            console.log("=== DEBUG LOGIN ===");
+            console.log("1. Objeto completo:", datos);
+            console.log("2. Objeto usuario:", datos.usuario);
+            console.log("3. Valor de idRol:", datos.usuario ? datos.usuario.idRol : 'Usuario es undefined');
+
+            if (rolId === 1) {
+              navigate('/admin');
+            } else if (rolId === 2) {
+              navigate('/inicio');
+            } else if (rolId === 3) {
+              navigate('/vendedor');
+            }
 
             console.log("ID de usuario del LocalStorage:", datos.usuario.idUsuario);
             console.log("Tipo de dato que se leyó:", typeof datos.usuario.idUsuario);
-            navigate('/inicio'); 
+            console.log("Rol:", datos.usuario.idRol);
         } else {
             alert("Credenciales incorrectas, intenta de nuevo."); 
         }

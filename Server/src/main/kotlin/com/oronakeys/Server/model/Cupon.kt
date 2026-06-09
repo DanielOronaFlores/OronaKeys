@@ -7,7 +7,6 @@ import java.math.BigDecimal
 @Entity
 @Table(name = "cupones")
 data class Cupon(
-    
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_cupon")
@@ -19,8 +18,7 @@ data class Cupon(
     @Column(name = "porcentaje_descuento", precision = 5, scale = 2, nullable = false)
     val porcentajeDescuento: BigDecimal = BigDecimal.ZERO,
 
-    
-    @Column(name = "fecha_expiracion", updatable = false)
+    @Column(name = "fecha_expiracion")
     val fechaIngreso: LocalDate,
 
     @Column(name = "activo", nullable = false,)
